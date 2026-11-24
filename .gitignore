@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-public/
+public/data.json
+resolver_server.py
+launcher.py
+.chrome-headless/
+__pycache__/
+*.pyc
+.env.local

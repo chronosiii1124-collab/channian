@@ -6,18 +6,16 @@
 
 ## 在线演示
 
-部署 GitHub Pages 后地址形如：
-
-`https://<你的用户名>.github.io/<仓库名>/`
+`https://chronosiii1124-collab.github.io/channian/`
 
 ## 本地运行
 
 ```bash
 npm install
-npm run dev
+npm run dev:public
 ```
 
-默认打开 `http://127.0.0.1:8775/`。
+`dev:public` 使用 30 条公开样例；如果你本地有完整 `public/data.json`，用 `npm run dev` 可以看完整版。
 
 ## 构建
 

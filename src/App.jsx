@@ -633,7 +633,12 @@ export default function App() {
   useEffect(() => {
     let alive = true;
     Promise.all([
-      fetch(asset(DATA_FILE)).then((res) => res.json()),
+      fetch(asset(DATA_FILE))
+        .then((res) => {
+          if (!res.ok) throw new Error('primary data missing');
+          return res.json();
+        })
+        .catch(() => fetch(asset('data.sample.json')).then((res) => res.json())),
       fetch(asset('china.json')).then((res) => res.json()),
       fetch(asset('cities.json')).then((res) => res.json()),
     ])

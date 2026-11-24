@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 8775",
+    "dev:public": "vite --mode public --host 127.0.0.1 --port 8775",
     "build": "vite build",
     "build:public": "vite build --mode public --outDir dist-public && node scripts/prune-public.mjs",
     "preview": "vite preview --host 127.0.0.1 --port 8775"

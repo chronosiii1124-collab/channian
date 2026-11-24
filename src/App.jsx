@@ -23,6 +23,8 @@ import AddLinkModal from './AddLinkModal';
 import LocationPicker from './LocationPicker';
 import Onboarding from './Onboarding';
 import Toast from './Toast';
+import RecipeSheet, { RecipeLoading } from './RecipeSheet';
+import { RECIPE_STEPS } from './recipeData';
 import { THEMES } from './themes';
 
 const AUTH_KEY = 'channian-auth-v1';
@@ -584,6 +586,9 @@ export default function App() {
   const [installEvent, setInstallEvent] = useState(null);
   const [online, setOnline] = useState(() => navigator.onLine);
   const [selected, setSelected] = useState(null);
+  const [recipeCache, setRecipeCache] = useState(() => readStored('channian-recipe-cache-v1', {}));
+  const [analyzing, setAnalyzing] = useState(null);
+  const [recipeView, setRecipeView] = useState(null);
   const [user, setUser] = useState(() => readStored(AUTH_KEY, null));
   const [showAuth, setShowAuth] = useState(() => !readStored(AUTH_KEY, null));
   const [showOnboarding, setShowOnboarding] = useState(() => (
@@ -950,6 +955,47 @@ export default function App() {
     notify('回收站已清空');
   }
 
+  async function analyzeRecipe(record) {
+    setSelected(null);
+    setAnalyzing(record);
+    setRecipeView(null);
+    let generated = null;
+    try {
+      const response = await fetch('/api/recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: record.id, title: record.title, url: record.url }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.ok && Array.isArray(data.steps) && data.steps.length) {
+          generated = {
+            ingredients: data.ingredients || [],
+            steps: data.steps,
+            tips: data.tips || [],
+            note: data.note || 'AI 从视频整理，请按原视频核对用量和火候',
+          };
+        }
+      }
+    } catch {
+      // 本地静态版没有模型接口，使用已缓存的演示结果
+    }
+    if (!generated) generated = recipeCache[record.id] || RECIPE_STEPS[record.id] || null;
+    if (!generated) {
+      setAnalyzing(null);
+      notify('这条还没有文字版，需要接入视频分析模型');
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    setRecipeCache((previous) => {
+      const next = { ...previous, [record.id]: generated };
+      localStorage.setItem('channian-recipe-cache-v1', JSON.stringify(next));
+      return next;
+    });
+    setRecipeView({ record, recipe: generated });
+    setAnalyzing(null);
+  }
+
   return (
     <div className="app">
       <div className="aurora" aria-hidden="true">
@@ -1134,7 +1180,7 @@ export default function App() {
             ) : null}
 
             <p className="map-hint glass">
-              <Compass size={13} /> 可拖动 · 滚轮/双指缩放 · 点省份 → 点城市
+              <Compass size={13} /> 可拖动 · 滚轮/双指缩放 · 点省份 → 点城市 · 城市颜色越深收藏越多
             </p>
           </main>
         ) : page === 'search' ? (
@@ -1191,7 +1237,17 @@ export default function App() {
 
       <Dock page={page} onChange={changePage} badges={{ inspiration: pendingRecords.length }} />
 
-      <AnimatePresence>{selected ? <DetailSheet record={selected} onClose={() => setSelected(null)} onRelocate={() => { setLocating(selected); setSelected(null); }} /> : null}</AnimatePresence>
+      <AnimatePresence>
+        {selected ? (
+          <DetailSheet
+            record={selected}
+            onClose={() => setSelected(null)}
+            onRelocate={() => { setLocating(selected); setSelected(null); }}
+            onAnalyzeRecipe={analyzeRecipe}
+            recipeCached={Boolean(recipeCache[selected.id])}
+          />
+        ) : null}
+      </AnimatePresence>
       <AnimatePresence>
         {addOpen ? (
           <AddLinkModal
@@ -1225,6 +1281,18 @@ export default function App() {
             isMobile={isMobile}
             onClose={() => setBulkTargets([])}
             onSave={(location) => saveLocations(bulkTargets.map((record) => record.id), location)}
+          />
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence>
+        {analyzing ? <RecipeLoading record={analyzing} onClose={() => setAnalyzing(null)} /> : null}
+      </AnimatePresence>
+      <AnimatePresence>
+        {recipeView ? (
+          <RecipeSheet
+            record={recipeView.record}
+            recipe={recipeView.recipe}
+            onClose={() => setRecipeView(null)}
           />
         ) : null}
       </AnimatePresence>

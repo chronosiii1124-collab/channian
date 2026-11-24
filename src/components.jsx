@@ -160,7 +160,7 @@ function isMobile() {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
-export function DetailSheet({ record, onClose, onRelocate }) {
+export function DetailSheet({ record, onClose, onRelocate, onAnalyzeRecipe, recipeCached }) {
   const [copied, setCopied] = useState(false);
   if (!record) return null;
   const canNavigate = Boolean(record.place);
@@ -233,6 +233,12 @@ export function DetailSheet({ record, onClose, onRelocate }) {
             <p className="detail-address">
               <MapPin size={13} /> {record.place}
             </p>
+          ) : null}
+          {record.kind === 'recipe' && onAnalyzeRecipe ? (
+            <button className="primary recipe-cta" onClick={() => onAnalyzeRecipe(record)}>
+              <Sparkles size={16} />
+              {recipeCached ? '查看文字版菜谱' : 'AI 生成文字版菜谱'}
+            </button>
           ) : null}
           <div className="detail-actions">
             <button className="primary" onClick={openDouyin}>
